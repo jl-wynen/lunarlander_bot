@@ -1,28 +1,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
-# flake8: noqa F401
-
 import numpy as np
 
 from lunarlander import Instructions
 
-#     Checkpoint,
-#     Heading,
-# ,
-#     Location,
-#     MapProxy,
-#     Vector,
-#     WeatherForecast,
-#     config,
-# )
-# from vendeeglobe.utils import distance_on_surface
 
-CREATOR = "TeamName"  # This is your team name
+CREATOR = "Apollo 11"  # This is your team name
 
 
 class Bot:
     """
-    This is the ship-controlling bot that will be instantiated for the competition.
+    This is the lander-controlling bot that will be instantiated for the competition.
     """
 
     def __init__(self):
@@ -69,19 +57,8 @@ class Bot:
                 self.initial_manoeuvre = False
             return instructions
 
-        # if (not self.initial_rotation_complete) and (heading > 0):
-        #     instructions.right = True
-        # if (not self.initial_rotation_complete) and (heading <= 2):
-        #     instructions.right = False
-        #     self.initial_rotation_complete = True
-
-        # if not self.initial_rotation_complete:
-        #     return instructions
-
         if self.target_site is None:
             self.target_site = self.find_landing_site(terrain)
-        # if t > 20:
-        #     self.target_site = 900
 
         if (self.target_site is None) and (y < 900) and (vy < 0):
             instructions.main = True
@@ -90,21 +67,11 @@ class Bot:
             command = None
             diff = self.target_site - x
             if np.abs(diff) < 50:
-                # and (diff > 0):
                 if vx > 0.1:
-                    # if self.target_heading is None:
                     self.target_heading = 90
                     command = self.rotate(heading)
-                    # if y < 900 and (vy < 0):
                     instructions.main = True
-                # elif vx < 0.5:
-                #     # if self.target_heading is None:
-                #     self.target_heading = -45
-                #     command = self.rotate(heading)
-                #     # if y < 900 and (vy < 0):
-                #     instructions.main = True
                 else:
-                    # if self.target_heading is None:
                     self.target_heading = 0
                     command = self.rotate(heading)
                     instructions.main = False
@@ -114,25 +81,11 @@ class Bot:
                 elif command == "right":
                     instructions.right = True
 
-                # elif x > self.target_site + 10:
-                #     if self.target_heading is None:
-                #         self.target_heading = min(
-                #             30, 30 * np.abs(x - self.target_site) / 500
-                #         )
-                #     command = self.rotate(heading)
-                #     if y < 900 and (vy < 0):
-                #         instructions.main = True
-                # else:
                 if (abs(vx) < 0.5) and (vy < -3):
                     instructions.main = True
             else:
                 if vy < 0:
                     instructions.main = True
-
-            # if command == "left":
-            #     instructions.left = True
-            # elif command == "right":
-            #     instructions.right = True
 
         if t < 5:
             instructions.main = True
@@ -159,11 +112,6 @@ class Bot:
 
         # Find run lengths
         run_lengths = np.diff(np.append(run_starts, n))
-
-        # # Find closest run
-        # imin = np.argmin(np.abs(run_starts - x))
-        # start = run_starts[imin]
-        # end = start + run_lengths[imin]
 
         # Find largest run
         imax = np.argmax(run_lengths)
