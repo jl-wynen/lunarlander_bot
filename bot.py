@@ -80,6 +80,8 @@ class Bot:
 
         if self.target_site is None:
             self.target_site = self.find_landing_site(terrain)
+        # if t > 20:
+        #     self.target_site = 900
 
         if (self.target_site is None) and (y < 900) and (vy < 0):
             instructions.main = True
@@ -87,17 +89,25 @@ class Bot:
         if self.target_site is not None:
             command = None
             diff = self.target_site - x
-            if (diff < 80) and (diff > 0):
+            if np.abs(diff) < 50:
+                # and (diff > 0):
                 if vx > 0.1:
-                    if self.target_heading is None:
-                        self.target_heading = 45
+                    # if self.target_heading is None:
+                    self.target_heading = 90
                     command = self.rotate(heading)
                     # if y < 900 and (vy < 0):
                     instructions.main = True
+                # elif vx < 0.5:
+                #     # if self.target_heading is None:
+                #     self.target_heading = -45
+                #     command = self.rotate(heading)
+                #     # if y < 900 and (vy < 0):
+                #     instructions.main = True
                 else:
-                    if self.target_heading is None:
-                        self.target_heading = 0
+                    # if self.target_heading is None:
+                    self.target_heading = 0
                     command = self.rotate(heading)
+                    instructions.main = False
 
                 if command == "left":
                     instructions.left = True
@@ -113,7 +123,7 @@ class Bot:
                 #     if y < 900 and (vy < 0):
                 #         instructions.main = True
                 # else:
-                if vy < -5:
+                if (abs(vx) < 0.5) and (vy < -3):
                     instructions.main = True
             else:
                 if vy < 0:
@@ -130,7 +140,7 @@ class Bot:
         return instructions
 
     def rotate(self, heading):
-        if np.abs(heading - self.target_heading) < 1:
+        if np.abs(heading - self.target_heading) < 0.35:
             self.target_heading = None
             return
         if heading < self.target_heading:
@@ -160,5 +170,7 @@ class Bot:
         start = run_starts[imax]
         end = start + run_lengths[imax]
 
-        if (end - start) > 20:
-            return start + (end - start) // 2
+        if (end - start) > 40:
+            loc = int(start + (end - start) * 0.5)
+            print("Found landing site at", loc)
+            return loc
