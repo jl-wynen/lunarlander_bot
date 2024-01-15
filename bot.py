@@ -45,7 +45,6 @@ class Bot:
         self.team = CREATOR  # Mandatory attribute
         self.initial_manoeuvre = True
         self.target_site = None
-        self.target_heading = 0
 
     def run(
         self,
@@ -89,7 +88,6 @@ class Bot:
                 elif command == "right":
                     instructions.right = True
                 else:
-                    # if self.target_heading is None:
                     self.initial_manoeuvre = False
             return instructions
 
@@ -103,13 +101,13 @@ class Bot:
             command = None
             diff = self.target_site - x
             if np.abs(diff) < 50:
-                if vx > 0.1:
-                    self.target_heading = 90
-                    command = self.rotate(me["heading"])
+                if abs(vx) <= 0.1:
+                    command = rotate(current=me["heading"], target=0)
+                elif vx > 0.1:
+                    command = rotate(current=me["heading"], target=90)
                     instructions.main = True
                 else:
-                    self.target_heading = 0
-                    command = self.rotate(me["heading"])
+                    command = rotate(current=me["heading"], target=-90)
                     instructions.main = False
 
                 if command == "left":
