@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
+from typing import Literal, Union
 import numpy as np
 
 from lunarlander import Instructions
@@ -7,13 +8,13 @@ from lunarlander import Instructions
 CREATOR = "Apollo 11"  # This is your team name
 
 
-def rotate(current, target):
-    if np.abs(current - target) < 0.35:
+def rotate(current: float, target: float) -> Union[Literal["left", "right"], None]:
+    if abs(current - target) < 0.5:
         return
     return "left" if current < target else "right"
 
 
-def find_landing_site(terrain):
+def find_landing_site(terrain: np.ndarray) -> Union[int, None]:
     # Find largest landing site
     n = len(terrain)
     # Find run starts
@@ -30,6 +31,7 @@ def find_landing_site(terrain):
     start = run_starts[imax]
     end = start + run_lengths[imax]
 
+    # Return location if large enough
     if (end - start) > 40:
         loc = int(start + (end - start) * 0.5)
         print("Found landing site at", loc)
@@ -43,6 +45,7 @@ class Bot:
 
     def __init__(self):
         self.team = CREATOR  # Mandatory attribute
+        self.flag = "fr"  # Optional attribute
         self.initial_manoeuvre = True
         self.target_site = None
 
@@ -78,10 +81,11 @@ class Bot:
         x, y = me["position"]
         vx, vy = me["velocity"]
 
+        # Perform an initial rotation to get the LEM pointing upwards
         if self.initial_manoeuvre:
             if vx > 10:
                 instructions.main = True
-            elif self.target_heading is not None:
+            else:
                 command = rotate(current=me["heading"], target=0)
                 if command == "left":
                     instructions.left = True
@@ -91,9 +95,11 @@ class Bot:
                     self.initial_manoeuvre = False
             return instructions
 
+        # Search for a suitable landing site
         if self.target_site is None:
             self.target_site = find_landing_site(terrain)
 
+        # If no landing site had been found, just hover at 900 altitude.
         if (self.target_site is None) and (y < 900) and (vy < 0):
             instructions.main = True
 
@@ -101,6 +107,7 @@ class Bot:
             command = None
             diff = self.target_site - x
             if np.abs(diff) < 50:
+                # Reduce horizontal speed
                 if abs(vx) <= 0.1:
                     command = rotate(current=me["heading"], target=0)
                 elif vx > 0.1:
@@ -118,6 +125,7 @@ class Bot:
                 if (abs(vx) < 0.5) and (vy < -3):
                     instructions.main = True
             else:
+                # Stay at constant altitude while moving towards target
                 if vy < 0:
                     instructions.main = True
 
