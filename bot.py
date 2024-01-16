@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from typing import Literal, Union
+
 import numpy as np
 
 from lunarlander import Instructions
