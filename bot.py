@@ -46,6 +46,7 @@ class Bot:
 
     def __init__(self):
         self.team = CREATOR  # Mandatory attribute
+        self.avatar = 0  # Optional attribute
         self.flag = "fr"  # Optional attribute
         self.initial_manoeuvre = True
         self.target_site = None
@@ -79,15 +80,16 @@ class Bot:
         instructions = Instructions()
 
         me = players[self.team]
-        x, y = me["position"]
-        vx, vy = me["velocity"]
+        x, y = me.position
+        vx, vy = me.velocity
+        head = me.heading
 
         # Perform an initial rotation to get the LEM pointing upwards
         if self.initial_manoeuvre:
             if vx > 10:
                 instructions.main = True
             else:
-                command = rotate(current=me["heading"], target=0)
+                command = rotate(current=head, target=0)
                 if command == "left":
                     instructions.left = True
                 elif command == "right":
@@ -110,12 +112,12 @@ class Bot:
             if np.abs(diff) < 50:
                 # Reduce horizontal speed
                 if abs(vx) <= 0.1:
-                    command = rotate(current=me["heading"], target=0)
+                    command = rotate(current=head, target=0)
                 elif vx > 0.1:
-                    command = rotate(current=me["heading"], target=90)
+                    command = rotate(current=head, target=90)
                     instructions.main = True
                 else:
-                    command = rotate(current=me["heading"], target=-90)
+                    command = rotate(current=head, target=-90)
                     instructions.main = False
 
                 if command == "left":
