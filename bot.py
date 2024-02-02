@@ -6,8 +6,6 @@ import numpy as np
 
 from lunarlander import Instructions
 
-CREATOR = "Apollo 11"  # This is your team name
-
 
 def rotate(current: float, target: float) -> Union[Literal["left", "right"], None]:
     if abs(current - target) < 0.5:
@@ -45,7 +43,7 @@ class Bot:
     """
 
     def __init__(self):
-        self.team = CREATOR  # Mandatory attribute
+        self.team = "Apollo 11"  # This is your team name
         self.avatar = 0  # Optional attribute
         self.flag = "fr"  # Optional attribute
         self.initial_manoeuvre = True
