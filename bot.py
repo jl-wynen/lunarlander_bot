@@ -232,5 +232,7 @@ class Bot:
             instructions.main = True
         if abs(y - terrain[self.target_site]) < 15:
             instructions.main = True
+        if vy < -5:
+            instructions.main = True
 
         return instructions, self.land
