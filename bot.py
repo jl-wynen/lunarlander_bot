@@ -184,7 +184,7 @@ class Bot:
                 instructions.main = True
             else:
                 command = rotate(current=heading, target=-90)
-                instructions.main = False
+                instructions.main = True
 
             if command == "left":
                 instructions.left = True
@@ -216,7 +216,7 @@ class Bot:
                 instructions.main = True
             else:
                 command = rotate(current=heading, target=-45)
-                instructions.main = False
+                instructions.main = True
 
             if command == "left":
                 instructions.left = True
@@ -229,8 +229,6 @@ class Bot:
         target_height = terrain[self.target_site]
         would_stop_at = stop_at_if_slow_down(h0=y, v0=vy, heading=heading)
         if would_stop_at < target_height - 60:
-            instructions.main = True
-        if abs(y - terrain[self.target_site]) < 15:
             instructions.main = True
         if vy < -4:
             instructions.main = True
