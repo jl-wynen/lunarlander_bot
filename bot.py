@@ -136,14 +136,15 @@ class Bot:
         return instructions, self.initial_manoeuvre
 
     def wait_for_landing_site(
-        self, players: dict[str, PlayerInfo], terrain: np.ndarray, **kwargs
+        self, t: float, players: dict[str, PlayerInfo], terrain: np.ndarray, **kwargs
     ) -> tuple[Instructions, callable]:
         instructions = Instructions()
         me = players[self.team]
-
         # Search for a suitable landing site
         if self.target_site is None:
             self.target_site = find_landing_site(terrain)
+        if t > 4 * 60:
+            self.target_site = me.position[0] + 50
         if self.target_site is not None:
             return instructions, self.align_with_landing_site
 
