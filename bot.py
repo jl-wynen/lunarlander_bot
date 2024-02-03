@@ -184,7 +184,7 @@ class Bot:
                 instructions.main = True
             else:
                 command = rotate(current=heading, target=-90)
-                instructions.main = False
+                instructions.main = True
 
             if command == "left":
                 instructions.left = True
@@ -216,7 +216,7 @@ class Bot:
                 instructions.main = True
             else:
                 command = rotate(current=heading, target=-45)
-                instructions.main = False
+                instructions.main = True
 
             if command == "left":
                 instructions.left = True
