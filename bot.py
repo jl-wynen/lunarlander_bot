@@ -231,7 +231,7 @@ class Bot:
         would_stop_at = stop_at_if_slow_down(h0=y, v0=vy, heading=heading)
         if would_stop_at < target_height - 60:
             instructions.main = True
-        if vy < -4:
+        if y - terrain[self.target_site] < 50 and vy < -4:
             instructions.main = True
 
         return instructions, self.land
