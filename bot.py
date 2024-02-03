@@ -4,13 +4,31 @@ from typing import Literal, Union
 
 import numpy as np
 
-from lunarlander import Instructions
+from lunarlander import Instructions, config
+from lunarlander.tools import PlayerInfo, AsteroidInfo
+
+g = config.gravity[1]
 
 
-def rotate(current: float, target: float) -> Union[Literal["left", "right"], None]:
-    if abs(current - target) < 0.5:
+def log(*msg) -> None:
+    print(f"Jankas: {' '.join(map(str, msg))}")
+
+
+def rotate(
+    current: float, target: float, tolerance: float = 0.5
+) -> Union[Literal["left", "right"], None]:
+    if abs(current - target) < tolerance:
         return
     return "left" if current < target else "right"
+
+
+def wrapping_diff(target: float, current: float) -> float:
+    diff1 = target - current
+    diff2 = target + config.nx - current
+    diff3 = target - config.nx - current
+    diffs = [diff1, diff2, diff3]
+    i = np.argmin(np.abs(diffs))
+    return diffs[i]
 
 
 def find_landing_site(terrain: np.ndarray) -> Union[int, None]:
@@ -33,8 +51,22 @@ def find_landing_site(terrain: np.ndarray) -> Union[int, None]:
     # Return location if large enough
     if (end - start) > 40:
         loc = int(start + (end - start) * 0.5)
-        print("Found landing site at", loc)
+        log("Found landing site at", loc)
         return loc
+
+
+def sink_to_height(h0: float, v0: float, heading: float, ht: float) -> bool:
+    a = np.cos(heading * np.pi / 180) * config.thrust
+    g = abs(config.gravity[1])
+    h1 = ((a - g) * ht + g * h0 + v0**2) / (a - 2 * g)
+    log(h0, h1, ht)
+    return h1 > h0
+
+
+def stop_at_if_slow_down(h0: float, v0: float, heading: float) -> float:
+    a = np.cos(heading * np.pi / 180) * config.thrust
+    g = abs(config.gravity[1])
+    return h0 - v0**2 / (a - g)
 
 
 class Bot:
@@ -43,19 +75,19 @@ class Bot:
     """
 
     def __init__(self):
-        self.team = "Apollo 11"  # This is your team name
-        self.avatar = 0  # Optional attribute
-        self.flag = "fr"  # Optional attribute
-        self.initial_manoeuvre = True
+        self.team = "Jankas"  # This is your team name
+        self.avatar = 15  # Optional attribute
+        self.flag = "de"  # Optional attribute
         self.target_site = None
+        self.state = self.initial_manoeuvre
 
     def run(
         self,
         t: float,
         dt: float,
         terrain: np.ndarray,
-        players: dict,
-        asteroids: list,
+        players: dict[str, PlayerInfo],
+        asteroids: list[AsteroidInfo],
     ):
         """
         This is the method that will be called at every time step to get the
@@ -75,59 +107,128 @@ class Bot:
         asteroids:
             A list of the asteroids currently flying.
         """
+        instructions, next_state = self.state(
+            t=t, dt=dt, terrain=terrain, players=players, asteroids=asteroids
+        )
+        if next_state != self.state:
+            log("Switching to", next_state.__name__)
+        self.state = next_state
+        return instructions
+
+    def initial_manoeuvre(
+        self, players: dict[str, PlayerInfo], **kwargs
+    ) -> tuple[Instructions, callable]:
+        me = players[self.team]
+        vx, vy = me.velocity
+        heading = me.heading
         instructions = Instructions()
 
-        me = players[self.team]
-        x, y = me.position
-        vx, vy = me.velocity
-        head = me.heading
-
-        # Perform an initial rotation to get the LEM pointing upwards
-        if self.initial_manoeuvre:
-            if vx > 10:
-                instructions.main = True
+        if vx > 10:
+            instructions.main = True
+        else:
+            command = rotate(current=heading, target=0)
+            if command == "left":
+                instructions.left = True
+            elif command == "right":
+                instructions.right = True
             else:
-                command = rotate(current=head, target=0)
-                if command == "left":
-                    instructions.left = True
-                elif command == "right":
-                    instructions.right = True
-                else:
-                    self.initial_manoeuvre = False
-            return instructions
+                return instructions, self.wait_for_landing_site
+        return instructions, self.initial_manoeuvre
+
+    def wait_for_landing_site(
+        self, players: dict[str, PlayerInfo], terrain: np.ndarray, **kwargs
+    ) -> tuple[Instructions, callable]:
+        instructions = Instructions()
+        me = players[self.team]
 
         # Search for a suitable landing site
         if self.target_site is None:
             self.target_site = find_landing_site(terrain)
+        if self.target_site is not None:
+            return instructions, self.align_with_landing_site
 
-        # If no landing site had been found, just hover at 900 altitude.
-        if (self.target_site is None) and (y < 900) and (vy < 0):
+        hover_height = np.max(terrain) + 50
+        would_stop_at = stop_at_if_slow_down(
+            h0=me.position[1], v0=me.velocity[1], heading=me.heading
+        )
+        if would_stop_at < hover_height and me.velocity[1] < 0:
+            instructions.main = True
+        return instructions, self.wait_for_landing_site
+
+    def align_with_landing_site(
+        self,
+        players: dict[str, PlayerInfo],
+        terrain: np.ndarray,
+        **kwargs,
+    ) -> tuple[Instructions, callable]:
+        instructions = Instructions()
+        me = players[self.team]
+        x, y = me.position
+        vx, vy = me.velocity
+        heading = me.heading
+
+        hover_height = np.max(terrain) + 50
+        would_stop_at = stop_at_if_slow_down(
+            h0=me.position[1], v0=me.velocity[1], heading=me.heading
+        )
+        if would_stop_at < hover_height and me.velocity[1] < 0:
             instructions.main = True
 
-        if self.target_site is not None:
-            command = None
-            diff = self.target_site - x
-            if np.abs(diff) < 50:
-                # Reduce horizontal speed
-                if abs(vx) <= 0.1:
-                    command = rotate(current=head, target=0)
-                elif vx > 0.1:
-                    command = rotate(current=head, target=90)
-                    instructions.main = True
-                else:
-                    command = rotate(current=head, target=-90)
-                    instructions.main = False
-
-                if command == "left":
-                    instructions.left = True
-                elif command == "right":
-                    instructions.right = True
-
-                if (abs(vx) < 0.5) and (vy < -3):
-                    instructions.main = True
+        diff = self.target_site - x
+        if np.abs(diff) < 50:
+            # Reduce horizontal speed
+            if abs(vx) <= 0.1:
+                command = rotate(current=heading, target=0)
+            elif vx > 0.1:
+                command = rotate(current=heading, target=90)
+                instructions.main = True
             else:
-                # Stay at constant altitude while moving towards target
-                if vy < 0:
-                    instructions.main = True
+                command = rotate(current=heading, target=-90)
+                instructions.main = False
 
-        return instructions
+            if command == "left":
+                instructions.left = True
+            elif command == "right":
+                instructions.right = True
+
+            if (abs(vx) < 0.5) and (vy < -3):
+                instructions.main = True
+        if np.abs(diff) < 20:
+            return instructions, self.land
+        return instructions, self.align_with_landing_site
+
+    def land(
+        self, players: dict[str, PlayerInfo], terrain: np.ndarray, **kwargs
+    ) -> tuple[Instructions, callable]:
+        instructions = Instructions()
+        me = players[self.team]
+        x, y = me.position
+        vx, vy = me.velocity
+        heading = me.heading
+
+        diff = self.target_site - x
+        if np.abs(diff) < 50:
+            # Reduce horizontal speed
+            if abs(vx) <= 0.1:
+                command = rotate(current=heading, target=0)
+            elif vx > 0.1:
+                command = rotate(current=heading, target=30)
+                instructions.main = True
+            else:
+                command = rotate(current=heading, target=-30)
+                instructions.main = False
+
+            if command == "left":
+                instructions.left = True
+            elif command == "right":
+                instructions.right = True
+
+            if (abs(vx) < 0.5) and (vy < -3):
+                instructions.main = True
+
+        target_height = terrain[self.target_site]
+        would_stop_at = stop_at_if_slow_down(h0=y, v0=vy, heading=heading)
+        if would_stop_at < target_height:
+            instructions.main = True
+
+        return instructions, self.land
