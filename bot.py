@@ -212,10 +212,10 @@ class Bot:
             if abs(vx) <= 0.1:
                 command = rotate(current=heading, target=0)
             elif vx > 0.1:
-                command = rotate(current=heading, target=30)
+                command = rotate(current=heading, target=45)
                 instructions.main = True
             else:
-                command = rotate(current=heading, target=-30)
+                command = rotate(current=heading, target=-45)
                 instructions.main = False
 
             if command == "left":
@@ -223,7 +223,7 @@ class Bot:
             elif command == "right":
                 instructions.right = True
 
-            if (abs(vx) < 0.5) and (vy < -3):
+            if (abs(vx) > 2) and (vy < -3):
                 instructions.main = True
 
         target_height = terrain[self.target_site]
