@@ -193,7 +193,7 @@ class Bot:
 
             if (abs(vx) < 0.5) and (vy < -3):
                 instructions.main = True
-        if np.abs(diff) < 20:
+        if np.abs(diff) < 30:
             return instructions, self.land
         return instructions, self.align_with_landing_site
 
@@ -228,7 +228,7 @@ class Bot:
 
         target_height = terrain[self.target_site]
         would_stop_at = stop_at_if_slow_down(h0=y, v0=vy, heading=heading)
-        if would_stop_at < target_height:
+        if would_stop_at < target_height - 40:
             instructions.main = True
 
         return instructions, self.land
